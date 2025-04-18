@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">MovieNavigator</string>
+    <string name="movie_detail">Movie Details</string>
+    <string name="back_button">back</string>
+</resources>
