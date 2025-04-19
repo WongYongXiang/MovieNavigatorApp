@@ -39,7 +39,8 @@ import com.ltu.moviedb.movienavigator.viewmodel.MovieDBViewModel
 
 enum class MovieDBScreen(@StringRes val title: Int){
     List(title = R.string.app_name),
-    Detail(title = R.string.movie_detail)
+    Detail(title = R.string.movie_detail),
+    ThirdScreen(title = R.string.third_screen)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -104,9 +105,19 @@ fun MovieDbApp(viewModel: MovieDBViewModel = viewModel(),
             }
             composable(route = MovieDBScreen.Detail.name){
                 uiState.selectedMovie?.let { movie ->
-                    MovieDetailScreen(movie = movie,
-                        modifier = Modifier)
+                    MovieDetailScreen(
+                        movie = movie,
+                        modifier = Modifier,
+                        onNavigateToThirdScreen = {
+                            navController.navigate(MovieDBScreen.ThirdScreen.name)
+                        }
+                    )
                 }
+            }
+            composable(route = MovieDBScreen.ThirdScreen.name){
+                ThirdScreen(
+                        onBack = { navController.popBackStack() }
+                        )
             }
         }
 
