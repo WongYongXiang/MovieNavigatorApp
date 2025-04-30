@@ -4,11 +4,14 @@
 
 package com.ltu.moviedb.movienavigator
 import androidx.annotation.StringRes
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.ArrowBack
-
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -30,6 +33,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.ltu.moviedb.movienavigator.R
 import com.ltu.moviedb.movienavigator.ui.screens.MovieDetailScreen
+import com.ltu.moviedb.movienavigator.ui.screens.MovieGridScreen
 import com.ltu.moviedb.movienavigator.ui.screens.MovieListScreen
 import com.ltu.moviedb.movienavigator.ui.screens.ThirdScreen
 
@@ -39,6 +43,7 @@ import com.ltu.moviedb.movienavigator.viewmodel.MovieDBViewModel
 
 enum class MovieDBScreen(@StringRes val title: Int) {
     List(title = R.string.app_name),
+    Grid(title = R.string.app_name),
     Detail(title = R.string.movie_detail),
     Third(title = R.string.third_screen)
 }
@@ -50,6 +55,7 @@ fun MovieDBAppBar(
     currentScreen: MovieDBScreen,
     canNavigateBack: Boolean,
     navigateUp: () -> Unit,
+    onViewToggle: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     TopAppBar(
@@ -67,6 +73,22 @@ fun MovieDBAppBar(
                     )
                 }
             }
+        },
+        actions = {
+            if (currentScreen == MovieDBScreen.List || currentScreen == MovieDBScreen.Grid) {
+                Text(
+                    text = stringResource(
+                        if (currentScreen == MovieDBScreen.List)
+                            R.string.grid_view
+                        else
+                            R.string.list_view
+                    ),
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .clickable { onViewToggle() }
+                )
+            }
         }
     )
 }
@@ -76,19 +98,30 @@ fun MovieDBAppBar(
 fun MovieDBApp(
     navController: NavHostController = rememberNavController()
 ) {
-    // Get current back stack entry
     val backStackEntry by navController.currentBackStackEntryAsState()
-    // Get the name of the current screen
     val currentScreen = MovieDBScreen.valueOf(
         backStackEntry?.destination?.route ?: MovieDBScreen.List.name
     )
+
+    val onViewToggle = {
+        when (currentScreen) {
+            MovieDBScreen.List -> navController.navigate(MovieDBScreen.Grid.name) {
+                popUpTo(MovieDBScreen.List.name) { inclusive = true }
+            }
+            MovieDBScreen.Grid -> navController.navigate(MovieDBScreen.List.name) {
+                popUpTo(MovieDBScreen.Grid.name) { inclusive = true }
+            }
+            else -> {}
+        }
+    }
 
     Scaffold(
         topBar = {
             MovieDBAppBar(
                 currentScreen = currentScreen,
                 canNavigateBack = navController.previousBackStackEntry != null,
-                navigateUp = { navController.navigateUp() }
+                navigateUp = { navController.navigateUp() },
+                onViewToggle = onViewToggle
             )
         }
     ) { innerPadding ->
@@ -108,9 +141,17 @@ fun MovieDBApp(
                         movieDBViewModel.setSelectedMovie(it)
                         navController.navigate(MovieDBScreen.Detail.name)
                     },
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp)
+                    modifier = Modifier.fillMaxSize().padding(16.dp)
+                )
+            }
+            composable(route = MovieDBScreen.Grid.name) {
+                MovieGridScreen(
+                    movieListUiState = movieDBViewModel.movieListUiState,
+                    onMovieListItemClicked = {
+                        movieDBViewModel.setSelectedMovie(it)
+                        navController.navigate(MovieDBScreen.Detail.name)
+                    },
+                    modifier = Modifier.fillMaxSize().padding(16.dp)
                 )
             }
             composable(route = MovieDBScreen.Detail.name) {
@@ -118,15 +159,15 @@ fun MovieDBApp(
                     selectedMovieUiState = movieDBViewModel.selectedMovieUiState,
                     modifier = Modifier,
                     onNavigateToThirdScreen = {
-                        navController.navigate(MovieDBScreen.Third.name) // This will navigate to third screen
+                        navController.navigate(MovieDBScreen.Third.name)
                     }
                 )
             }
             composable(route = MovieDBScreen.Third.name) {
                 ThirdScreen(
-                    onBack = { navController.popBackStack() } // This will navigate back
+                    onBack = { navController.popBackStack() }
                 )
             }
-        } }
-
+        }
+    }
 }

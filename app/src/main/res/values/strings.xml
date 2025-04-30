@@ -3,4 +3,6 @@
     <string name="movie_detail">Movie details</string>
     <string name="back_button">back</string>
     <string name="third_screen">Third Screen</string>
+    <string name="grid_view">Grid View</string>
+    <string name="list_view">List View</string>
 </resources>
