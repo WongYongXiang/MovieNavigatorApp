@@ -51,6 +51,10 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
 
+    //exoplayer
+    implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.ui.v121)
+
     // Coil
     implementation(libs.coil.compose)
     implementation(libs.androidx.navigation.runtime.ktx)
