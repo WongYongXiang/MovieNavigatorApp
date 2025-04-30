@@ -1,86 +1,93 @@
 package com.ltu.moviedb.movienavigator.ui.screens
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
-import com.ltu.moviedb.movienavigator.model.Movie
+import coil.compose.AsyncImage
 import com.ltu.moviedb.movienavigator.utils.Constants
-import com.ltu.moviedb.movienavigator.utils.HomepageLink
-import com.ltu.moviedb.movienavigator.utils.IMDBLink
+import com.ltu.moviedb.movienavigator.utils.Genre
+import com.ltu.moviedb.movienavigator.viewmodel.SelectedMovieUiState
+
 
 @Composable
 fun MovieDetailScreen(
-    movie: Movie,
+    selectedMovieUiState: SelectedMovieUiState,
     modifier: Modifier = Modifier,
-    onNavigateToThirdScreen: () -> Unit ={}
+    onNavigateToThirdScreen: () -> Unit = {}
 ) {
-    Column {
-        Box {
-            AsyncImage(
-                model = Constants.BACKDROP_IMAGE_URL + Constants.BACKDROP_IMAGE_WIDTH+ movie.backdropPath,
-                contentDescription = movie.title,
-                modifier = Modifier, //complete weight
-                contentScale = ContentScale.Crop
+    when (selectedMovieUiState) {
+        is SelectedMovieUiState.Success -> {
+            Column(Modifier.width(IntrinsicSize.Max)) {
+                Box(Modifier.fillMaxWidth().padding(0.dp)) {
+                    AsyncImage(
+                        model = Constants.BACKDROP_IMAGE_BASE_URL + Constants.BACKDROP_IMAGE_BASE_WIDTH + selectedMovieUiState.movie.backdropPath,
+                        contentDescription = selectedMovieUiState.movie.title,
+                        modifier = modifier,
+                        contentScale = ContentScale.Crop
+                    )
+                }
+                Text(
+                    text = selectedMovieUiState.movie.title,
+                    style = MaterialTheme.typography.headlineSmall
+                )
+                Spacer(modifier = Modifier.size(8.dp))
+                Text(
+                    text = selectedMovieUiState.movie.releaseDate,
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Spacer(modifier = Modifier.size(8.dp))
+
+                Text(
+                    text = "Genres: ${Genre.getGenreNames(selectedMovieUiState.movie.genres).joinToString(", ")}",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Spacer(modifier = Modifier.size(8.dp))
+
+                Text(
+                    text = selectedMovieUiState.movie.overview,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(modifier = Modifier.size(8.dp))
+
+                Button(
+                    onClick = onNavigateToThirdScreen,
+                    modifier = Modifier
+                        .padding(top = 16.dp)
+                        .fillMaxWidth()
+                ){
+                    Text("Go to Third Screen")
+                }
+            }
+        }
+        is SelectedMovieUiState.Loading -> {
+            Text(
+                text = "Loading...",
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(16.dp)
             )
         }
-
-        Text(
-            text = movie.title,
-            style = MaterialTheme.typography.headlineSmall
-        )
-        Spacer(modifier = Modifier.size(8.dp))
-
-        Text(
-            text = movie.releaseDate,
-            style = MaterialTheme.typography.bodySmall
-        )
-        Spacer(modifier = Modifier.size(8.dp))
-
-        Text(
-            text = "Genres: ${movie.genres.joinToString(", ")}",
-            style = MaterialTheme.typography.bodySmall
-        )
-        Spacer(modifier = Modifier.size(8.dp))
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            HomepageLink(homepage = movie.homepage)
-            IMDBLink(imdbId = movie.imdbID)
+        is SelectedMovieUiState.Error -> {
+            Text(
+                text = "Error...",
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(16.dp)
+            )
         }
-        Spacer(modifier = Modifier.size(16.dp))
-        Text(
-            text = movie.overview,
-            style = MaterialTheme.typography.bodySmall,
-            overflow = TextOverflow.Ellipsis
-
-        )
-        Spacer(modifier = Modifier.size(8.dp))
-
-        Button(
-            onClick = onNavigateToThirdScreen,
-            modifier = Modifier
-                .padding(top = 16.dp)
-                .fillMaxWidth()
-        ){
-            Text("Go to Third Screen")
-        }
-
     }
+
 }
