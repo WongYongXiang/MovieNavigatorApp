@@ -31,7 +31,6 @@ fun MovieListScreen(
     movieListUiState: MovieListUiState,
     onMovieListItemClicked: (Movie) -> Unit,
     modifier: Modifier = Modifier) {
-    //scrollable list
     LazyColumn (modifier = modifier) {
         when(movieListUiState) {
             is MovieListUiState.Success -> {

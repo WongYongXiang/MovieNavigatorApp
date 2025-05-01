@@ -166,7 +166,7 @@ fun MovieDBApp(
             composable(route = MovieDBScreen.Third.name) {
                 val selectedMovie = (movieDBViewModel.selectedMovieUiState as? SelectedMovieUiState.Success)?.movie
                 ThirdScreen(
-                    movieId = selectedMovie?.id, // Add this parameter
+                    movieId = selectedMovie?.id,
                     onBack = { navController.popBackStack() }
                 )
             }

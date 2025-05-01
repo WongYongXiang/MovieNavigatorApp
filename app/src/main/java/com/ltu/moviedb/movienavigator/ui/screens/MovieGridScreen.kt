@@ -42,7 +42,6 @@ fun MovieGridScreen(
                     )
                 }
             }
-            // Keep the same loading/error states
             is MovieListUiState.Loading -> {
                 item {
                     Text(

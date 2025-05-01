@@ -3,7 +3,6 @@ package com.ltu.moviedb.movienavigator.model
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-// ReviewModels.kt
 @Serializable
 data class MovieReviewsResponse(
     @SerialName("id")
