@@ -11,6 +11,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.ltu.moviedb.movienavigator.MovieDBApplication
 import com.ltu.moviedb.movienavigator.database.MoviesRepository
 import com.ltu.moviedb.movienavigator.model.Movie
+import com.ltu.moviedb.movienavigator.model.MovieReviewsResponse
 
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
@@ -29,12 +30,21 @@ sealed interface SelectedMovieUiState {
     object Loading : SelectedMovieUiState
 }
 
+sealed interface MovieReviewsUiState {
+    object Loading : MovieReviewsUiState
+    data class Success(val reviews: MovieReviewsResponse) : MovieReviewsUiState
+    data class Error(val message: String) : MovieReviewsUiState
+}
+
 class MovieDBViewModel(private val moviesRepository: MoviesRepository) : ViewModel() {
 
     var movieListUiState: MovieListUiState by mutableStateOf(MovieListUiState.Loading)
         private set
 
     var selectedMovieUiState: SelectedMovieUiState by mutableStateOf(SelectedMovieUiState.Loading)
+        private set
+
+    var movieReviewsUiState by mutableStateOf<MovieReviewsUiState>(MovieReviewsUiState.Loading)
         private set
 
     init {
@@ -76,6 +86,26 @@ class MovieDBViewModel(private val moviesRepository: MoviesRepository) : ViewMod
                 SelectedMovieUiState.Error
             } catch (e: HttpException) {
                 SelectedMovieUiState.Error
+            }
+        }
+    }
+
+    fun fetchReviews(movieId: Long) {
+        viewModelScope.launch {
+            movieReviewsUiState = MovieReviewsUiState.Loading
+            try {
+                val response = moviesRepository.getMovieReviews(movieId)
+                if (response.results.isNotEmpty()) {
+                    movieReviewsUiState = MovieReviewsUiState.Success(response)
+                } else {
+                    movieReviewsUiState = MovieReviewsUiState.Error("No reviews available")
+                }
+            } catch (e: IOException) {
+                movieReviewsUiState = MovieReviewsUiState.Error("Network error: ${e.message}")
+            } catch (e: HttpException) {
+                movieReviewsUiState = MovieReviewsUiState.Error("Server error: ${e.message}")
+            } catch (e: Exception) {
+                movieReviewsUiState = MovieReviewsUiState.Error("Unknown error: ${e.message}")
             }
         }
     }

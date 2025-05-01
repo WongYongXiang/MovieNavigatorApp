@@ -38,7 +38,7 @@ import com.ltu.moviedb.movienavigator.ui.screens.MovieListScreen
 import com.ltu.moviedb.movienavigator.ui.screens.ThirdScreen
 
 import com.ltu.moviedb.movienavigator.viewmodel.MovieDBViewModel
-
+import com.ltu.moviedb.movienavigator.viewmodel.SelectedMovieUiState
 
 
 enum class MovieDBScreen(@StringRes val title: Int) {
@@ -164,7 +164,9 @@ fun MovieDBApp(
                 )
             }
             composable(route = MovieDBScreen.Third.name) {
+                val selectedMovie = (movieDBViewModel.selectedMovieUiState as? SelectedMovieUiState.Success)?.movie
                 ThirdScreen(
+                    movieId = selectedMovie?.id, // Add this parameter
                     onBack = { navController.popBackStack() }
                 )
             }

@@ -70,7 +70,7 @@ fun MovieDetailScreen(
                         .padding(top = 16.dp)
                         .fillMaxWidth()
                 ){
-                    Text("Go to Third Screen")
+                    Text("Go to Trailer and Reviews")
                 }
             }
         }

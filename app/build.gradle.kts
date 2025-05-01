@@ -52,7 +52,7 @@ dependencies {
     implementation(libs.androidx.material3)
 
     //exoplayer
-    implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.exoplayer.v120)
     implementation(libs.androidx.media3.ui.v121)
 
     // Coil
@@ -67,7 +67,9 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.logging.interceptor)
 
-
+    //noinspection GradleDependency
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.runtime.ktx.v262)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
