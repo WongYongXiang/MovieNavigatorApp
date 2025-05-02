@@ -12,6 +12,7 @@ import com.ltu.moviedb.movienavigator.MovieDBApplication
 import com.ltu.moviedb.movienavigator.database.MoviesRepository
 import com.ltu.moviedb.movienavigator.model.Movie
 import com.ltu.moviedb.movienavigator.model.MovieReviewsResponse
+import com.ltu.moviedb.movienavigator.model.VideoModels
 
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
@@ -36,6 +37,12 @@ sealed interface MovieReviewsUiState {
     data class Error(val message: String) : MovieReviewsUiState
 }
 
+sealed interface MovieVideosUiState {
+    object Loading : MovieVideosUiState
+    data class Success(val videos: VideoModels) : MovieVideosUiState
+    data class Error(val message: String) : MovieVideosUiState
+}
+
 class MovieDBViewModel(private val moviesRepository: MoviesRepository) : ViewModel() {
 
     var movieListUiState: MovieListUiState by mutableStateOf(MovieListUiState.Loading)
@@ -45,6 +52,9 @@ class MovieDBViewModel(private val moviesRepository: MoviesRepository) : ViewMod
         private set
 
     var movieReviewsUiState by mutableStateOf<MovieReviewsUiState>(MovieReviewsUiState.Loading)
+        private set
+
+    var movieVideosUiState by mutableStateOf<MovieVideosUiState>(MovieVideosUiState.Loading)
         private set
 
     init {
@@ -106,6 +116,18 @@ class MovieDBViewModel(private val moviesRepository: MoviesRepository) : ViewMod
                 movieReviewsUiState = MovieReviewsUiState.Error("Server error: ${e.message}")
             } catch (e: Exception) {
                 movieReviewsUiState = MovieReviewsUiState.Error("Unknown error: ${e.message}")
+            }
+        }
+    }
+
+    fun fetchVideos(movieId: Long) {
+        viewModelScope.launch {
+            movieVideosUiState = MovieVideosUiState.Loading
+            try {
+                val response = moviesRepository.getMovieVideos(movieId)
+                movieVideosUiState = MovieVideosUiState.Success(response)
+            } catch (e: Exception) {
+                movieVideosUiState = MovieVideosUiState.Error(e.message ?: "Failed to load videos")
             }
         }
     }

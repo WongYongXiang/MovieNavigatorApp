@@ -55,6 +55,8 @@ dependencies {
     implementation(libs.androidx.media3.exoplayer.v120)
     implementation(libs.androidx.media3.ui.v121)
 
+    implementation(libs.core)
+
     // Coil
     implementation(libs.coil.compose)
     implementation(libs.androidx.navigation.runtime.ktx)
