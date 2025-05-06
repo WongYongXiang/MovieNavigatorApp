@@ -5,4 +5,8 @@
     <string name="third_screen">Movie Trailer and Reviews</string>
     <string name="grid_view">Grid View</string>
     <string name="list_view">List View</string>
+    <string name="popular_movies">Popular Movies</string>
+    <string name="top_rated_movies">Top Rated Movies</string>
+    <string name="saved">Saved</string>
+    <string name="menu_description">Menu</string>
 </resources>

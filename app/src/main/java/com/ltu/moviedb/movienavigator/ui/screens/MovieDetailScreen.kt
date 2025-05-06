@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Switch
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Button
@@ -24,12 +25,14 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.ltu.moviedb.movienavigator.utils.Constants
 import com.ltu.moviedb.movienavigator.utils.Genre
+import com.ltu.moviedb.movienavigator.viewmodel.MovieDBViewModel
 import com.ltu.moviedb.movienavigator.viewmodel.SelectedMovieUiState
 
 
 @Composable
 fun MovieDetailScreen(
     selectedMovieUiState: SelectedMovieUiState,
+    movieDBViewModel: MovieDBViewModel,
     modifier: Modifier = Modifier,
     onNavigateToThirdScreen: () -> Unit = {}
 ) {
@@ -90,6 +93,18 @@ fun MovieDetailScreen(
                     Spacer(modifier = Modifier.size(16.dp))
                 }
 
+                item {
+                    Text(
+                        text = "Favourite",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Switch(checked = selectedMovieUiState.isFavorite, onCheckedChange ={
+                        if (it)
+                            movieDBViewModel.saveMovie(selectedMovieUiState.movie)
+                        else
+                            movieDBViewModel.deleteMovie(selectedMovieUiState.movie)
+                    })
+                }
                 // Button
                 item {
                     Button(
