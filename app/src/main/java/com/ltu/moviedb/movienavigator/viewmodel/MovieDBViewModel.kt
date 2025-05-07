@@ -69,10 +69,12 @@ class MovieDBViewModel(
         private set
 
     private var currentListType: CurrentListType = CurrentListType.POPULAR
-    private val cachedMovies = mutableMapOf<CurrentListType, List<Movie>>()
+    private var cachedMovies: List<Movie>? = null
+    private var cachedListType: CurrentListType? = null
     private var currentMovieId: Long? = null
 
-    var isNetworkAvailable = false
+    var isNetworkAvailable by mutableStateOf(false)
+        private set
 
     private val networkRequest = NetworkRequest.Builder()
         .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
@@ -84,10 +86,10 @@ class MovieDBViewModel(
         override fun onAvailable(network: Network) {
             super.onAvailable(network)
             isNetworkAvailable = true
-            refreshCurrentList() // Auto-refresh movie list when network returns
-            currentMovieId?.let { id->
-                fetchVideos(id) // Auto-refresh videos when network returns
-                fetchReviews(id) // Auto-refresh reviews when network returns
+            refreshCurrentList() //Auto-refresh movie list when network returns
+            currentMovieId?.let { id ->
+                fetchVideos(id) //Auto-refresh videos when network returns
+                fetchReviews(id) //Auto-refresh reviews when network returns
             }
         }
 
@@ -96,6 +98,7 @@ class MovieDBViewModel(
             isNetworkAvailable = false
         }
     }
+
     init {
         registerNetworkCallback()
         getPopularMovies()
@@ -124,19 +127,26 @@ class MovieDBViewModel(
             try {
                 val movies = if (isNetworkAvailable) {
                     moviesRepository.getTopRatedMovies().results.also {
-                        cachedMovies[CurrentListType.TOP_RATED] = it
+                        // Cache only the current list
+                        cachedMovies = it
+                        cachedListType = CurrentListType.TOP_RATED
                     }
                 } else {
-                    cachedMovies[CurrentListType.TOP_RATED] ?: throw IOException("No network connection and no cached data")
+                    // cache if it matches current list type
+                    if (cachedListType == CurrentListType.TOP_RATED) {
+                        cachedMovies ?: throw IOException("No cached data available")
+                    } else {
+                        throw IOException("No cached data for top-rated movies")
+                    }
                 }
                 movieListUiState = MovieListUiState.Success(
                     movies = movies,
                     isFromCache = !isNetworkAvailable
                 )
             } catch (e: IOException) {
-                movieListUiState = if (cachedMovies[CurrentListType.TOP_RATED]?.isNotEmpty() == true) {
+                movieListUiState = if (cachedListType == CurrentListType.TOP_RATED && cachedMovies?.isNotEmpty() == true) {
                     MovieListUiState.Success(
-                        movies = cachedMovies[CurrentListType.TOP_RATED]!!,
+                        movies = cachedMovies!!,
                         isFromCache = true
                     )
                 } else {
@@ -155,19 +165,26 @@ class MovieDBViewModel(
             try {
                 val movies = if (isNetworkAvailable) {
                     moviesRepository.getPopularMovies().results.also {
-                        cachedMovies[CurrentListType.POPULAR] = it
+                        // Cache only the current list
+                        cachedMovies = it
+                        cachedListType = CurrentListType.POPULAR
                     }
                 } else {
-                    cachedMovies[CurrentListType.POPULAR] ?: throw IOException("No network connection and no cached data")
+                    // Only use cache if it matches current list type
+                    if (cachedListType == CurrentListType.POPULAR) {
+                        cachedMovies ?: throw IOException("No cached data available")
+                    } else {
+                        throw IOException("No cached data for popular movies")
+                    }
                 }
                 movieListUiState = MovieListUiState.Success(
                     movies = movies,
                     isFromCache = !isNetworkAvailable
                 )
             } catch (e: IOException) {
-                movieListUiState = if (cachedMovies[CurrentListType.POPULAR]?.isNotEmpty() == true) {
+                movieListUiState = if (cachedListType == CurrentListType.POPULAR && cachedMovies?.isNotEmpty() == true) {
                     MovieListUiState.Success(
-                        movies = cachedMovies[CurrentListType.POPULAR]!!,
+                        movies = cachedMovies!!,
                         isFromCache = true
                     )
                 } else {
@@ -175,6 +192,21 @@ class MovieDBViewModel(
                 }
             } catch (e: HttpException) {
                 movieListUiState = MovieListUiState.Error
+            }
+        }
+    }
+
+    fun getSavedMovies() {
+        currentListType = CurrentListType.SAVED
+        // Clear cache when switching to saved movies
+        cachedMovies = null
+        cachedListType = null
+        viewModelScope.launch {
+            movieListUiState = MovieListUiState.Loading
+            movieListUiState = try {
+                MovieListUiState.Success(savedMoviesRepository.getSavedMovies())
+            } catch (e: IOException) {
+                MovieListUiState.Error
             }
         }
     }
@@ -193,28 +225,14 @@ class MovieDBViewModel(
         }
     }
 
-    fun getSavedMovies() {
-        currentListType = CurrentListType.SAVED
-        viewModelScope.launch {
-            movieListUiState = MovieListUiState.Loading
-            movieListUiState = try {
-                MovieListUiState.Success(savedMoviesRepository.getSavedMovies())
-            } catch (e: IOException) {
-                MovieListUiState.Error
-            } catch (e: IOException) {
-                MovieListUiState.Error
-            }
-        }
-    }
-
-    fun saveMovie(movie: Movie){
+    fun saveMovie(movie: Movie) {
         viewModelScope.launch {
             savedMoviesRepository.insertMovie(movie)
             selectedMovieUiState = SelectedMovieUiState.Success(movie, isFavorite = true)
         }
     }
 
-    fun deleteMovie(movie: Movie){
+    fun deleteMovie(movie: Movie) {
         viewModelScope.launch {
             savedMoviesRepository.deleteMovie(movie)
             selectedMovieUiState = SelectedMovieUiState.Success(movie, isFavorite = false)
@@ -275,6 +293,7 @@ class MovieDBViewModel(
             }
         }
     }
+
     private enum class CurrentListType {
         POPULAR, TOP_RATED, SAVED
     }
