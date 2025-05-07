@@ -1,10 +1,11 @@
 A simple Android app for discovering movies using TMDB API.
 
 CURRENT FEATURES:
-- Browse popular movies
-- View basic movie details
+- Browse popular and top rated movies in both list and grid view
+- View basic movie summary details
 - Watch trailers (basic implementation)
 - Read movie reviews
+- Cached movie list when disconnected with the functionality of auto-refresh when connection is back
 
 KNOWN LIMITATIONS:
 - Some features may not work perfectly
