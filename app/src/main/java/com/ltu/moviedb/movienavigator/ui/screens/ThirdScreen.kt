@@ -46,143 +46,172 @@ fun ThirdScreen(
     val context = LocalContext.current
     val videosState = viewModel.movieVideosUiState
     val reviewsState = viewModel.movieReviewsUiState
+    val isNetworkAvailable = viewModel.isNetworkAvailable
+
+    var isInitialLoad by remember { mutableStateOf(true) }
+    var isRefreshing by remember { mutableStateOf(false) }
+    var showRefreshToast by remember { mutableStateOf(false) }
 
     // Track currently selected video
     var selectedVideo by remember { mutableStateOf<String?>(null) }
 
-    // Fetch data
+    // Initial data fetch - runs only once when movieId changes
     LaunchedEffect(movieId) {
-        movieId?.let {
-            viewModel.fetchVideos(it)
-            viewModel.fetchReviews(it)
+        if (movieId != null && isInitialLoad) {
+            viewModel.fetchVideos(movieId)
+            viewModel.fetchReviews(movieId)
+            isInitialLoad = false
+        }
+    }
+
+    // Handle network changes - only refresh if not initial load
+    LaunchedEffect(isNetworkAvailable) {
+        if (isNetworkAvailable && !isInitialLoad &&
+            (videosState is MovieVideosUiState.Error || reviewsState is MovieReviewsUiState.Error)) {
+            isRefreshing = true
+            movieId?.let {
+                viewModel.fetchVideos(it)
+                viewModel.fetchReviews(it)
+            }
+        }
+    }
+
+    // Handle refresh completion
+    LaunchedEffect(videosState, reviewsState) {
+        if (isRefreshing && videosState !is MovieVideosUiState.Loading &&
+            reviewsState !is MovieReviewsUiState.Loading) {
+            isRefreshing = false
+            showRefreshToast = true
+        }
+    }
+
+    // Show toast when refresh completes
+    if (showRefreshToast) {
+        LaunchedEffect(Unit) {
+            Toast.makeText(
+                context,
+                "Data refreshed with new network connection",
+                Toast.LENGTH_SHORT
+            ).show()
+            showRefreshToast = false
         }
     }
 
     Scaffold() { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
-            // Videos Section
-            item {
-                Column {
-                    Text(
-                        text = "Videos",
-                        style = MaterialTheme.typography.titleLarge,
-                        modifier = Modifier.padding(16.dp)
-                    )
-
-                    when (videosState) {
-                        is MovieVideosUiState.Loading -> {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(200.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CircularProgressIndicator()
-                            }
-                        }
-                        is MovieVideosUiState.Error -> {
-                            Text(
-                                text = videosState.message,
-                                color = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.padding(16.dp)
+        Box(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+            ) {
+                // Videos Section
+                item {
+                    Column {
+                        // Show refreshing indicator if needed
+                        if (isRefreshing) {
+                            LinearProgressIndicator(
+                                modifier = Modifier.fillMaxWidth()
                             )
                         }
-                        is MovieVideosUiState.Success -> {
-                            val videos = videosState.videos.results
-                            if (videos.isEmpty()) {
-                                Text(
-                                    text = "No videos available",
-                                    modifier = Modifier.padding(16.dp)
-                                )
-                            } else {
-                                // Auto-select first video if none selected
-                                if (selectedVideo == null) {
-                                    selectedVideo = videos.first().key
-                                }
+                        Text(
+                            text = "Videos",
+                            style = MaterialTheme.typography.titleLarge,
+                            modifier = Modifier.padding(16.dp)
+                        )
 
-                                // YouTube Player
-                                selectedVideo?.let { videoId ->
-                                    YouTubePlayerEmbed(
-                                        videoId = videoId,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .aspectRatio(16f / 9f)
-                                            .padding(16.dp)
-                                    )
-                                }
-
-                                // Video List
-                                Text(
-                                    text = "Available Videos (${videos.size})",
-                                    modifier = Modifier.padding(16.dp)
-                                )
-
-                                LazyRow(
-                                    modifier = Modifier.padding(bottom = 16.dp)
+                        when (videosState) {
+                            is MovieVideosUiState.Loading -> {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(200.dp),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    items(videos) { video ->
-                                        VideoThumbnailCard(
-                                            video = video,
-                                            isSelected = video.key == selectedVideo,
-                                            onClick = {
-                                                selectedVideo = video.key
-                                            },
+                                    CircularProgressIndicator()
+                                }
+                            }
+                            is MovieVideosUiState.Error -> {
+                                Text(
+                                    text = videosState.message,
+                                    color = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.padding(16.dp)
+                                )
+                            }
+                            is MovieVideosUiState.Success -> {
+                                val videos = videosState.videos.results
+                                if (videos.isEmpty()) {
+                                    Text(
+                                        text = "No videos available",
+                                        modifier = Modifier.padding(16.dp)
+                                    )
+                                } else {
+                                    // Auto-select first video if none selected
+                                    if (selectedVideo == null) {
+                                        selectedVideo = videos.first().key
+                                    }
+
+                                    // YouTube Player
+                                    selectedVideo?.let { videoId ->
+                                        YouTubePlayerEmbed(
+                                            videoId = videoId,
                                             modifier = Modifier
-                                                .width(200.dp)
-                                                .padding(8.dp)
+                                                .fillMaxWidth()
+                                                .aspectRatio(16f / 9f)
+                                                .padding(16.dp)
                                         )
+                                    }
+
+                                    // Video List
+                                    Text(
+                                        text = "Available Videos (${videos.size})",
+                                        modifier = Modifier.padding(16.dp)
+                                    )
+
+                                    LazyRow(
+                                        modifier = Modifier.padding(bottom = 16.dp)
+                                    ) {
+                                        items(videos) { video ->
+                                            VideoThumbnailCard(
+                                                video = video,
+                                                isSelected = video.key == selectedVideo,
+                                                onClick = {
+                                                    selectedVideo = video.key
+                                                },
+                                                modifier = Modifier
+                                                    .width(200.dp)
+                                                    .padding(8.dp)
+                                            )
+                                        }
                                     }
                                 }
                             }
                         }
                     }
                 }
-            }
 
-            // Reviews Section
-            item {
-                Text(
-                    text = "Reviews",
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-            }
+                // Reviews Section
+                item {
+                    Text(
+                        text = "Reviews",
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                }
 
-            when (reviewsState) {
-                is MovieReviewsUiState.Loading -> {
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(100.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator()
+                when (reviewsState) {
+                    is MovieReviewsUiState.Loading -> {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(100.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator()
+                            }
                         }
                     }
-                }
-                is MovieReviewsUiState.Error -> {
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = reviewsState.message,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        }
-                    }
-                }
-                is MovieReviewsUiState.Success -> {
-                    val reviews = reviewsState.reviews.results
-                    if (reviews.isEmpty()) {
+                    is MovieReviewsUiState.Error -> {
                         item {
                             Box(
                                 modifier = Modifier
@@ -190,15 +219,50 @@ fun ThirdScreen(
                                     .padding(16.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text("No reviews available yet")
+                                Text(
+                                    text = reviewsState.message,
+                                    color = MaterialTheme.colorScheme.error
+                                )
                             }
                         }
-                    } else {
-                        items(reviews) { review ->
-                            ReviewCard(review = review)
-                            Spacer(modifier = Modifier.height(8.dp))
+                    }
+                    is MovieReviewsUiState.Success -> {
+                        val reviews = reviewsState.reviews.results
+                        if (reviews.isEmpty()) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("No reviews available yet")
+                                }
+                            }
+                        } else {
+                            items(reviews) { review ->
+                                ReviewCard(review = review)
+                                Spacer(modifier = Modifier.height(8.dp))
+                            }
                         }
                     }
+                }
+            }
+
+            // Show network status banner at the bottom
+            if (!isNetworkAvailable) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.errorContainer)
+                        .padding(8.dp)
+                ) {
+                    Text(
+                        text = "No internet connection - please check connection",
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.align(Alignment.Center)
+                    )
                 }
             }
         }

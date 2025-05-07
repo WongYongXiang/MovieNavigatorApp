@@ -180,13 +180,14 @@ fun MovieDBApp(
                 .padding(innerPadding)
         ) {
             composable(route = MovieDBScreen.List.name) {
+                // Use the same ViewModel instance here
                 MovieListScreen(
                     movieListUiState = movieDBViewModel.movieListUiState,
-                    onMovieListItemClicked = {
-                        movieDBViewModel.setSelectedMovie(it)
+                    onMovieListItemClicked = { movie ->
+                        movieDBViewModel.setSelectedMovie(movie)
                         navController.navigate(MovieDBScreen.Detail.name)
                     },
-                    modifier = Modifier.fillMaxSize().padding(16.dp)
+                    modifier = Modifier.fillMaxSize()
                 )
             }
             composable(route = MovieDBScreen.Grid.name) {

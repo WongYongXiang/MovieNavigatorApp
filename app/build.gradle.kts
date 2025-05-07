@@ -52,6 +52,9 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
 
+    //More extensions for icons
+    implementation("androidx.compose.material:material-icons-extended:")
+
     //exoplayer
     implementation(libs.androidx.media3.exoplayer.v120)
     implementation(libs.androidx.media3.ui.v121)

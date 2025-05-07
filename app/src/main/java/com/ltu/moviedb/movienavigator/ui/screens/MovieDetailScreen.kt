@@ -20,9 +20,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.ltu.moviedb.movienavigator.ui.components.ErrorScreen
 import com.ltu.moviedb.movienavigator.utils.Constants
 import com.ltu.moviedb.movienavigator.utils.Genre
 import com.ltu.moviedb.movienavigator.viewmodel.MovieDBViewModel
@@ -36,6 +38,8 @@ fun MovieDetailScreen(
     modifier: Modifier = Modifier,
     onNavigateToThirdScreen: () -> Unit = {}
 ) {
+    val context = LocalContext.current
+    Box(modifier = Modifier.fillMaxSize()) {
     when (selectedMovieUiState) {
         is SelectedMovieUiState.Success -> {
             LazyColumn(
@@ -116,26 +120,27 @@ fun MovieDetailScreen(
                         Text("Go to Trailer and Reviews")
                     }
                 }
+                // Network
+                item {
+                    if (!movieDBViewModel.isNetworkAvailable) {
+                        Text(
+                            text = "Offline - some features may be limited",
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+                    }
+                }
             }
         }
         is SelectedMovieUiState.Loading -> {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
+            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
         }
         is SelectedMovieUiState.Error -> {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "Error loading movie details",
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
+            ErrorScreen(
+                message = "Error loading movie details",
+                modifier = Modifier.align(Alignment.Center)
+            )
         }
     }
+}
 }

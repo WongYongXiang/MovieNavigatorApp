@@ -1,8 +1,10 @@
 package com.ltu.moviedb.movienavigator.ui.screens
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -10,15 +12,19 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.ltu.moviedb.movienavigator.model.Movie
+import com.ltu.moviedb.movienavigator.ui.components.ErrorScreen
+import com.ltu.moviedb.movienavigator.ui.components.OfflineBanner
 import com.ltu.moviedb.movienavigator.utils.Constants
 import com.ltu.moviedb.movienavigator.viewmodel.MovieListUiState
 
@@ -28,34 +34,35 @@ fun MovieGridScreen(
     onMovieListItemClicked: (Movie) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(2),
-        modifier = modifier
-    ) {
-        when(movieListUiState) {
+    Box(modifier = modifier.fillMaxSize()) {
+        when (movieListUiState) {
             is MovieListUiState.Success -> {
-                items(movieListUiState.movies) { movie ->
-                    MovieGridItem(
-                        movie = movie,
-                        onMovieListItemClicked,
-                        modifier = Modifier.padding(8.dp)
-                    )
+                Column {
+                    if (movieListUiState.isFromCache) {
+                        OfflineBanner()
+                    }
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        items(movieListUiState.movies) { movie ->
+                            MovieGridItem(
+                                movie = movie,
+                                onMovieListItemClicked = onMovieListItemClicked,
+                                modifier = Modifier.padding(8.dp)
+                            )
+                        }
+                    }
                 }
             }
             is MovieListUiState.Loading -> {
-                item {
-                    Text(
-                        text = "Loading...",
-                        modifier = Modifier.padding(16.dp)
-                    )
-                }
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             }
             is MovieListUiState.Error -> {
-                item {
-                    Text(
-                        text = "Error: Something went wrong!",
-                        modifier = Modifier.padding(16.dp))
-                }
+                ErrorScreen(
+                    message = "Error loading movies",
+                    modifier = Modifier.align(Alignment.Center)
+                )
             }
         }
     }
