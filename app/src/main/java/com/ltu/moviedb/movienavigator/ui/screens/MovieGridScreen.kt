@@ -25,6 +25,7 @@ import com.ltu.moviedb.movienavigator.viewmodel.MovieListUiState
 @Composable
 fun MovieGridScreen(
     movieListUiState: MovieListUiState,
+    connectionState: Boolean,
     onMovieListItemClicked: (Movie) -> Unit,
     modifier: Modifier = Modifier
 ) {

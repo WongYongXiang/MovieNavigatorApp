@@ -10,10 +10,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButtonDefaults.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
@@ -26,40 +30,51 @@ import com.ltu.moviedb.movienavigator.utils.Constants
 import com.ltu.moviedb.movienavigator.utils.Genre
 import com.ltu.moviedb.movienavigator.viewmodel.MovieListUiState
 
+
 @Composable
 fun MovieListScreen(
     movieListUiState: MovieListUiState,
+    connectionState: Boolean,
     onMovieListItemClicked: (Movie) -> Unit,
-    modifier: Modifier = Modifier) {
-    LazyColumn (modifier = modifier) {
-        when(movieListUiState) {
-            is MovieListUiState.Success -> {
-                items(movieListUiState.movies) { movie ->
-                    MovieListItemCard(
-                        movie = movie,
-                        onMovieListItemClicked,
-                        modifier = Modifier.padding(8.dp)
-                    )
+    modifier: Modifier = Modifier
+) {
+    Box(modifier = modifier) {
+        LazyColumn {
+            when(movieListUiState) {
+                is MovieListUiState.Success -> {
+                    items(movieListUiState.movies) { movie ->
+                        MovieListItemCard(
+                            movie = movie,
+                            onMovieListItemClicked = onMovieListItemClicked,
+                            modifier = Modifier.padding(8.dp)
+                        )
+                    }
                 }
-            }
-
-            is MovieListUiState.Loading -> {
-                item {
-                    Text(
-                        text = "Loading...",
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(16.dp)
-                    )
+                is MovieListUiState.Loading -> {
+                    item {
+                        Box(
+                            modifier = Modifier.fillParentMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
                 }
-            }
-
-            is MovieListUiState.Error -> {
-                item {
-                    Text(
-                        text = "Error: Something went wrong!",
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(16.dp)
-                    )
+                is MovieListUiState.Error -> {
+                    item {
+                        Box(
+                            modifier = Modifier.fillParentMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = if (!connectionState) {
+                                    "No internet connection. Showing cached data if available."
+                                } else {
+                                    "Error loading movies. Please try again."
+                                }
+                            )
+                        }
+                    }
                 }
             }
         }

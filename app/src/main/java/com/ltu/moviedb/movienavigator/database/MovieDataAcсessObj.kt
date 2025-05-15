@@ -7,7 +7,7 @@ import androidx.room.Query
 import com.ltu.moviedb.movienavigator.model.Movie
 
 @Dao
-interface MovieDataAcсessObj {
+interface MovieDataAccessObj {
     @Query("SELECT * FROM favorite_movies" )
     suspend fun getSavedMovies(): List<Movie>
 

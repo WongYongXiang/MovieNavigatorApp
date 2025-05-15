@@ -14,11 +14,12 @@ import com.ltu.moviedb.movienavigator.database.SavedMoviesRepository
 import com.ltu.moviedb.movienavigator.model.Movie
 import com.ltu.moviedb.movienavigator.model.MovieReviewsResponse
 import com.ltu.moviedb.movienavigator.model.VideoModels
-
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import java.io.IOException
-
 
 sealed interface MovieListUiState {
     data class Success(val movies: List<Movie>) : MovieListUiState
@@ -44,8 +45,10 @@ sealed interface MovieVideosUiState {
     data class Error(val message: String) : MovieVideosUiState
 }
 
-class MovieDBViewModel(private val moviesRepository: MoviesRepository,
-    private val savedMoviesRepository: SavedMoviesRepository) : ViewModel() {
+class MovieDBViewModel(
+    private val moviesRepository: MoviesRepository,
+    private val savedMoviesRepository: SavedMoviesRepository
+) : ViewModel() {
 
     var movieListUiState: MovieListUiState by mutableStateOf(MovieListUiState.Loading)
         private set
@@ -59,6 +62,9 @@ class MovieDBViewModel(private val moviesRepository: MoviesRepository,
     var movieVideosUiState by mutableStateOf<MovieVideosUiState>(MovieVideosUiState.Loading)
         private set
 
+    private val _connectionState = MutableStateFlow(true)
+    val connectionState: StateFlow<Boolean> = _connectionState.asStateFlow()
+
     init {
         getPopularMovies()
     }
@@ -66,12 +72,17 @@ class MovieDBViewModel(private val moviesRepository: MoviesRepository,
     fun getTopRatedMovies() {
         viewModelScope.launch {
             movieListUiState = MovieListUiState.Loading
-            movieListUiState = try {
-                MovieListUiState.Success(moviesRepository.getTopRatedMovies().results)
+            try {
+                _connectionState.value = true
+                movieListUiState = MovieListUiState.Success(
+                    moviesRepository.getTopRatedMovies().results
+                )
             } catch (e: IOException) {
-                MovieListUiState.Error
+                _connectionState.value = false
+                movieListUiState = MovieListUiState.Error
             } catch (e: HttpException) {
-                MovieListUiState.Error
+                _connectionState.value = true
+                movieListUiState = MovieListUiState.Error
             }
         }
     }
@@ -79,12 +90,17 @@ class MovieDBViewModel(private val moviesRepository: MoviesRepository,
     fun getPopularMovies() {
         viewModelScope.launch {
             movieListUiState = MovieListUiState.Loading
-            movieListUiState = try {
-                MovieListUiState.Success(moviesRepository.getPopularMovies().results)
+            try {
+                _connectionState.value = true
+                movieListUiState = MovieListUiState.Success(
+                    moviesRepository.getPopularMovies().results
+                )
             } catch (e: IOException) {
-                MovieListUiState.Error
+                _connectionState.value = false
+                movieListUiState = MovieListUiState.Error
             } catch (e: HttpException) {
-                MovieListUiState.Error
+                _connectionState.value = true
+                movieListUiState = MovieListUiState.Error
             }
         }
     }
@@ -110,23 +126,21 @@ class MovieDBViewModel(private val moviesRepository: MoviesRepository,
                 MovieListUiState.Success(savedMoviesRepository.getSavedMovies())
             } catch (e: IOException) {
                 MovieListUiState.Error
-            } catch (e: IOException) {
-                MovieListUiState.Error
             }
         }
     }
 
-    fun saveMovie(movie: Movie){
+    fun saveMovie(movie: Movie) {
         viewModelScope.launch {
             savedMoviesRepository.insertMovie(movie)
             selectedMovieUiState = SelectedMovieUiState.Success(movie, isFavorite = true)
         }
     }
 
-    fun deleteMovie(movie: Movie){
+    fun deleteMovie(movie: Movie) {
         viewModelScope.launch {
             savedMoviesRepository.deleteMovie(movie)
-            selectedMovieUiState = SelectedMovieUiState.Success(movie, isFavorite = true)
+            selectedMovieUiState = SelectedMovieUiState.Success(movie, isFavorite = false)
         }
     }
 
