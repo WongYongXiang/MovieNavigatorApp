@@ -5,9 +5,11 @@ import android.net.ConnectivityManager
 import com.ltu.moviedb.movienavigator.network.MovieDBApiService
 import com.ltu.moviedb.movienavigator.utils.Constants
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
+import com.ltu.moviedb.movienavigator.MovieDBApplication
 import com.ltu.moviedb.movienavigator.model.Movie
 import com.ltu.moviedb.movienavigator.model.MovieResponse
 import com.ltu.moviedb.movienavigator.model.MovieReviewsResponse
+import com.ltu.moviedb.movienavigator.model.NetworkMonitor
 import com.ltu.moviedb.movienavigator.model.VideoModels
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
@@ -18,6 +20,7 @@ import java.io.IOException
 interface AppContainer {
     val moviesRepository: MoviesRepository
     val savedMoviesRepository: SavedMoviesRepository
+    val networkMonitor: NetworkMonitor
 }
 
 class DefaultAppContainer(private val context: Context) : AppContainer {
@@ -73,6 +76,10 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
         val networkInfo = connectivityManager.activeNetworkInfo
         return networkInfo != null && networkInfo.isConnected
     }
+
+    override val networkMonitor: NetworkMonitor by lazy {
+        NetworkMonitor(context)
+    }
 }
 
 // Caching Repository Implementation
@@ -88,7 +95,7 @@ class CachingMoviesRepository(
         return try {
             val movies = networkRepository.getPopularMovies()
             cachedRepository.cachePopularMovies(movies.results)
-            cachedRepository.clearCache("top_rated") // Clear other cache
+            cachedRepository.clearCache("top_rated")
             lastFetchedListType = "popular"
             movies
         } catch (e: Exception) {
@@ -114,7 +121,7 @@ class CachingMoviesRepository(
         return try {
             val movies = networkRepository.getTopRatedMovies()
             cachedRepository.cacheTopRatedMovies(movies.results)
-            cachedRepository.clearCache("popular") // Clear other cache
+            cachedRepository.clearCache("popular")
             lastFetchedListType = "top_rated"
             movies
         } catch (e: Exception) {

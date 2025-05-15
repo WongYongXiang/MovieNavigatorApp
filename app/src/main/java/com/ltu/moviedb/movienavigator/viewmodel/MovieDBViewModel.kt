@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.asFlow
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
@@ -13,10 +14,12 @@ import com.ltu.moviedb.movienavigator.database.MoviesRepository
 import com.ltu.moviedb.movienavigator.database.SavedMoviesRepository
 import com.ltu.moviedb.movienavigator.model.Movie
 import com.ltu.moviedb.movienavigator.model.MovieReviewsResponse
+import com.ltu.moviedb.movienavigator.model.NetworkMonitor
 import com.ltu.moviedb.movienavigator.model.VideoModels
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import java.io.IOException
@@ -47,7 +50,8 @@ sealed interface MovieVideosUiState {
 
 class MovieDBViewModel(
     private val moviesRepository: MoviesRepository,
-    private val savedMoviesRepository: SavedMoviesRepository
+    private val savedMoviesRepository: SavedMoviesRepository,
+    private val networkMonitor: NetworkMonitor
 ) : ViewModel() {
 
     var movieListUiState: MovieListUiState by mutableStateOf(MovieListUiState.Loading)
@@ -65,8 +69,37 @@ class MovieDBViewModel(
     private val _connectionState = MutableStateFlow(true)
     val connectionState: StateFlow<Boolean> = _connectionState.asStateFlow()
 
+    private var lastFetchedListType: String? = null
+
     init {
         getPopularMovies()
+        startNetworkMonitoring()
+    }
+
+    private fun startNetworkMonitoring() {
+        viewModelScope.launch {
+            networkMonitor.isConnected.asFlow().collect { isConnected ->
+                _connectionState.value = isConnected
+                if (isConnected) {
+                    // Auto-refresh when connection is restored
+                    when (movieListUiState) {
+                        is MovieListUiState.Success -> {
+                            when (lastFetchedListType) {
+                                "popular" -> getPopularMovies()
+                                "top_rated" -> getTopRatedMovies()
+                            }
+                        }
+                        is MovieListUiState.Error -> {
+                            when (lastFetchedListType) {
+                                "popular" -> getPopularMovies()
+                                "top_rated" -> getTopRatedMovies()
+                            }
+                        }
+                        else -> {}
+                    }
+                }
+            }
+        }
     }
 
     fun getTopRatedMovies() {
@@ -74,9 +107,9 @@ class MovieDBViewModel(
             movieListUiState = MovieListUiState.Loading
             try {
                 _connectionState.value = true
-                movieListUiState = MovieListUiState.Success(
-                    moviesRepository.getTopRatedMovies().results
-                )
+                val movies = moviesRepository.getTopRatedMovies()
+                movieListUiState = MovieListUiState.Success(movies.results)
+                lastFetchedListType = "top_rated"
             } catch (e: IOException) {
                 _connectionState.value = false
                 movieListUiState = MovieListUiState.Error
@@ -92,9 +125,9 @@ class MovieDBViewModel(
             movieListUiState = MovieListUiState.Loading
             try {
                 _connectionState.value = true
-                movieListUiState = MovieListUiState.Success(
-                    moviesRepository.getPopularMovies().results
-                )
+                val movies = moviesRepository.getPopularMovies()
+                movieListUiState = MovieListUiState.Success(movies.results)
+                lastFetchedListType = "popular"
             } catch (e: IOException) {
                 _connectionState.value = false
                 movieListUiState = MovieListUiState.Error
@@ -109,8 +142,10 @@ class MovieDBViewModel(
         viewModelScope.launch {
             selectedMovieUiState = SelectedMovieUiState.Loading
             selectedMovieUiState = try {
-                SelectedMovieUiState.Success(movie,
-                    savedMoviesRepository.getMovie(movie.id) != null)
+                SelectedMovieUiState.Success(
+                    movie,
+                    savedMoviesRepository.getMovie(movie.id) != null
+                )
             } catch (e: IOException) {
                 SelectedMovieUiState.Error
             } catch (e: HttpException) {
@@ -179,10 +214,13 @@ class MovieDBViewModel(
     companion object {
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
-                val application = (this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as MovieDBApplication)
-                val moviesRepository = application.container.moviesRepository
-                val savedMoviesRepository = application.container.savedMoviesRepository
-                MovieDBViewModel(moviesRepository = moviesRepository, savedMoviesRepository = savedMoviesRepository)
+                val application = (this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]
+                        as MovieDBApplication)
+                MovieDBViewModel(
+                    moviesRepository = application.container.moviesRepository,
+                    savedMoviesRepository = application.container.savedMoviesRepository,
+                    networkMonitor = application.container.networkMonitor
+                )
             }
         }
     }

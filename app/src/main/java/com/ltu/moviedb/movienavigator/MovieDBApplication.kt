@@ -9,6 +9,7 @@ import androidx.work.WorkManager
 import com.ltu.moviedb.movienavigator.database.AppContainer
 import com.ltu.moviedb.movienavigator.database.DefaultAppContainer
 import com.ltu.moviedb.movienavigator.model.MovieListRefreshWorker
+import com.ltu.moviedb.movienavigator.model.NetworkMonitor
 import java.util.concurrent.TimeUnit
 
 class MovieDBApplication : Application() {
@@ -17,6 +18,8 @@ class MovieDBApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         container = DefaultAppContainer(this)
+        container = DefaultAppContainer(this)
+        container.networkMonitor.startMonitoring()
         scheduleRefresh()
     }
 
