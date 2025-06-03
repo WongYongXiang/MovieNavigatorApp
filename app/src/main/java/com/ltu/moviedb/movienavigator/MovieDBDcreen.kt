@@ -38,6 +38,7 @@ import com.ltu.moviedb.movienavigator.ui.screens.ThirdScreen
 import com.ltu.moviedb.movienavigator.viewmodel.MovieDBViewModel
 import com.ltu.moviedb.movienavigator.viewmodel.SelectedMovieUiState
 
+
 enum class MovieDBScreen(@StringRes val title: Int) {
     List(title = R.string.app_name),
     Grid(title = R.string.app_name),

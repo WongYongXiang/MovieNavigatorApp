@@ -70,6 +70,7 @@ class MovieDBViewModel(
     val connectionState: StateFlow<Boolean> = _connectionState.asStateFlow()
 
     private var lastFetchedListType: String? = null
+    private var currentListType: String = "popular"
 
     init {
         getPopularMovies()
@@ -81,29 +82,21 @@ class MovieDBViewModel(
             networkMonitor.isConnected.asFlow().collect { isConnected ->
                 _connectionState.value = isConnected
                 if (isConnected) {
-                    // Auto-refresh when connection is restored
-                    when (movieListUiState) {
-                        is MovieListUiState.Success -> {
-                            when (lastFetchedListType) {
-                                "popular" -> getPopularMovies()
-                                "top_rated" -> getTopRatedMovies()
-                            }
-                        }
-                        is MovieListUiState.Error -> {
-                            when (lastFetchedListType) {
-                                "popular" -> getPopularMovies()
-                                "top_rated" -> getTopRatedMovies()
-                            }
-                        }
-                        else -> {}
+                    // Refresh the current list type when connection is restored
+                    when (currentListType) {
+                        "popular" -> getPopularMovies()
+                        "top_rated" -> getTopRatedMovies()
+                        "saved" -> getSavedMovies()
                     }
                 }
             }
         }
     }
 
+
     fun getTopRatedMovies() {
         viewModelScope.launch {
+            currentListType = "top_rated"
             movieListUiState = MovieListUiState.Loading
             try {
                 _connectionState.value = true
@@ -122,6 +115,7 @@ class MovieDBViewModel(
 
     fun getPopularMovies() {
         viewModelScope.launch {
+            currentListType = "popular"
             movieListUiState = MovieListUiState.Loading
             try {
                 _connectionState.value = true
@@ -156,6 +150,7 @@ class MovieDBViewModel(
 
     fun getSavedMovies() {
         viewModelScope.launch {
+            currentListType = "saved" // Update current list type
             movieListUiState = MovieListUiState.Loading
             movieListUiState = try {
                 MovieListUiState.Success(savedMoviesRepository.getSavedMovies())
